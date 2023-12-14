@@ -23,20 +23,67 @@
 ## 📌 주요기능
 
 ### action
-- def move_agent(agent_position, action): """ 에이전트의 위치를 업데이트하는 함수 """
-    </br> posX, posY = agent_position
-    </br># 상, 좌, 우, 하에 따라 위치를 업데이트
-    </br>if action == 0 and posX > 0: posX -= 1 # 상
-    </br>if action == 1 and posY > 0: posY -= 1 # 하
-    </br>if action == 2 and posY < 11: posY += 1 # 좌
-    </br>if action == 3 and posX < 3: posX += 1 # 우
-    </br>return (posX, posY)
-
+  
+```
+  def move_agent(agent_position, action): """ 에이전트의 위치를 업데이트하는 함수 """
+    posX, posY = agent_position
+    ''' 상, 좌, 우, 하에 따라 위치를 업데이트'''
+    if action == 0 and posX > 0: posX -= 1 # 상
+    if action == 1 and posY > 0: posY -= 1 # 하
+    if action == 2 and posY < 11: posY += 1 # 좌
+    if action == 3 and posX < 3: posX += 1 # 우
+    return (posX, posY)
+```
 ### reward
-- 
+```
+  def determine_reward(state):
+    """ 현재 상태에 따른 보상을 결정하는 함수 """
+    # 목표에 도달하면 보상 10, 클리프면 -100, 그 외에는 -1의 보상
+    if state == 47: return 10, True  # 목표 지점에 도달했을 때
+    if 37 <= state <= 46: return -100, True  # 클리프에 떨어졌을 때
+    return -1, False  # 그 외의 이동에 대해서는 -1의 보상
+```
+함수의 내용을 자세히 살펴보면:
 
+- if state == 47: - 상태 47은 CliffWalking 환경에서 목표 지점에 해당합니다. 에이전트가 목표에 도달하면, 보상으로 10을 받고, True를 함께 반환하여 에피소드가 종료되었음을 나타냄</br>if 37 <= state <= 46: - 이 범위 내의 상태들은 클리프를 나타냄 에이전트가 클리프에 떨어지면 매우 큰 음수 값인 -100의 보상을 받고, 에피소드는 역시 True를 반환하여 종료
+ 이는 에이전트가 클리프를 피하도록 매우 강력한 음의 인센티브를 제공
+
+- return -1, False - 위의 두 조건에 해당하지 않는 모든 다른 이동에 대해서는 -1의 보상을 받음 이는 에이전트가 목표 지점에 더 빠르게 도달하도록 유도하기 위한 것으로, 에이전트가 불필요한 이동을 줄이고 더 효율적인 경로를 찾도록 동기를 부여하며 False는 에피소드가 아직 종료되지 않았음을 나타냄
+
+- 이러한 보상 체계는 에이전트가 안전하게 목표 지점에 도달하기 위한 경로를 학습하면서 위험을 회피하는 전략을 개발하도록 유도하는 데 중요 또한 이는 절벽으로 인한 큰 음수 보상은 위험한 행동에 대한 강력한 처벌로 작용하여, 에이전트가 해당 행동을 피하게 만드는 반면, 목표에 도달했을 때의 긍정적인 보상은 에이전트가 목표를 향해 이동
 
 ### Q - learning
+```
+def run_q_learning(env, episodes=500, learn_rate=0.5, discount=0.9, explore_rate=0.1):
+
+    q_vals = initialize_q_table()  # Q-테이블 초기화
+    rewards_sum = []  # 각 에피소드별 총 보상을 저장할 리스트
+    
+    for ep in range(episodes):
+        position = (3, 0)  # 시작 위치 설정
+        done = False  # 에피소드 종료 여부
+        total_reward = 0  # 에피소드별 총 보상
+
+        while not done:
+            state, _ = calculate_state(position, q_vals)  # 현재 상태 계산
+            action = select_action(state, q_vals, explore_rate)  # 행동 선택
+            new_pos = move_agent(position, action)  # 에이전트 이동
+            next_state, max_next_q = calculate_state(new_pos, q_vals)  # 다음 상태 계산
+            reward, done = determine_reward(next_state)  # 보상 및 종료 여부 결정
+            total_reward += reward  # 총 보상 업데이트
+            # Q-테이블 업데이트
+            q_vals = adjust_q_values(q_vals, state, action, reward, max_next_q, discount, learn_rate)
+            position = new_pos  # 에이전트 위치 업데이트
+        
+        rewards_sum.append(total_reward)  # 총 보상을 리스트에 추가
+
+        # 매 100 에피소드마다 Q-테이블 시각화
+        if ep % 100 == 0:
+            visualize_q_table(q_vals, ep, "Q-Learning")
+    
+    return q_vals, rewards_sum  # Q-테이블과 보상 리스트 반환
+```
+
 - q_vals: Q-테이블을 초기화. 
 - rewards_sum: 각 에피소드별 총 보상을 저장할 리스트를 초기화.
 - 에피소드 반복:
@@ -55,6 +102,44 @@
 - ε-탐욕적 정책 (Epsilon-Greedy Policy): 에이전트가 탐험(새로운 행동 시도)과 이용(현재 정보를 기반으로 최적의 행동 선택) 사이에서 균형을 맞추도록 도움
 
 ### sarsa
+
+```
+def run_sarsa(env, episodes=500, learn_rate=0.25, discount=0.9, explore_rate=0.1):
+    """
+    SARSA 알고리즘을 실행하는 함수입니다.
+    매개변수는 Q-Learning과 동일합니다.
+    """
+    sarsa_vals = initialize_q_table()  # SARSA 테이블 초기화
+    total_rewards = []  # 총 보상 리스트
+
+    for ep in range(episodes):
+        position = (3, 0)  # 시작 위치
+        state, _ = calculate_state(position, sarsa_vals)  # 현재 상태 계산
+        action = select_action(state, sarsa_vals, explore_rate)  # 행동 선택
+        done = False  # 에피소드 종료 여부
+        accumulated_reward = 0  # 누적 보상
+
+        while not done:
+            new_pos = move_agent(position, action)  # 에이전트 이동
+            next_state, _ = calculate_state(new_pos, sarsa_vals)  # 다음 상태
+            next_action = select_action(next_state, sarsa_vals, explore_rate)  # 다음 행동 선택
+            reward, done = determine_reward(next_state)  # 보상 및 종료 여부 결정
+            accumulated_reward += reward  # 누적 보상 업데이트
+            # SARSA 테이블 업데이트
+            sarsa_vals = adjust_q_values(sarsa_vals, state, action, reward, sarsa_vals[next_action, next_state], discount, learn_rate)
+            # 에이전트 위치 및 상태 업데이트
+            position, state, action = new_pos, next_state, next_action
+        
+        total_rewards.append(accumulated_reward)  # 누적 보상을 리스트에 추가
+
+        # 매 100 에피소드마다 SARSA 테이블 시각화
+        if ep % 100 == 0:
+            visualize_q_table(sarsa_vals, ep, "SARSA")
+    
+    return sarsa_vals, total_rewards  # SARSA 테이블과 보상 리스트 반환
+
+```
+
 - q_vals: Q-테이블을 초기화. 
 - rewards_sum: 각 에피소드별 총 보상을 저장할 리스트를 초기화 
 - 에피소드 내 반복:
