@@ -1,4 +1,4 @@
-![image](https://github.com/seungyeon0323/sogang/assets/153755354/2fff65c0-dc04-4434-b7ff-147a9bcf4440)# cliff walking
+# cliff walking
   강화학습 기초 프로젝트
 
 ## 💻 프로젝트 소개
