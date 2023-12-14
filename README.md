@@ -20,6 +20,16 @@
 - explore_rate: 탐색률로, 에이전트가 무작위 행동을 선택할지 (1.0)
   
 ## 📌 주요기능
+
+### action
+- def move_agent(agent_position, action): """ 에이전트의 위치를 업데이트하는 함수 """
+    </br> posX, posY = agent_position
+    </br># 상, 좌, 우, 하에 따라 위치를 업데이트
+    </br>if action == 0 and posX > 0: posX -= 1 # 상
+    </br>if action == 1 and posY > 0: posY -= 1 # 하
+    </br>if action == 2 and posY < 11: posY += 1 # 좌
+    </br>if action == 3 and posX < 3: posX += 1 # 우
+    </br>return (posX, posY)
 ### Q - learning
 - q_vals: Q-테이블을 초기화. 
 - rewards_sum: 각 에피소드별 총 보상을 저장할 리스트를 초기화.
